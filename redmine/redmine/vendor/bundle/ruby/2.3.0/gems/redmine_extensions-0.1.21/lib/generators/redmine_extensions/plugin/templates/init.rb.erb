@@ -1,0 +1,16 @@
+Redmine::Plugin.register :<%= plugin_name_underscored %> do
+  name '<%= plugin_pretty_name %>'
+  author ''
+  author_url ''
+  description ''
+  version '<%= Date.today.strftime('%Y') %>'
+
+  #into easy_settings goes available setting as a symbol key, default value as a value
+  settings easy_settings: {  }
+end
+
+
+easy_extensions = Redmine::Plugin.registered_plugins[:easy_extensions]
+if easy_extensions.nil? || Gem::Version.new(easy_extensions.version) < Gem::Version.new('2016.03.00')
+  require_relative 'after_init'
+end

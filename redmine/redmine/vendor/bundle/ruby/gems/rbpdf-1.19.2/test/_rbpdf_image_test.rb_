@@ -1,0 +1,161 @@
+require 'test_helper'
+
+class RbpdfTest < Test::Unit::TestCase
+  class MYPDF < RBPDF
+    def get_image_file(uri)
+      super
+    end
+  end
+
+  test "Image basic func extension test" do
+    pdf = RBPDF.new
+
+    type = pdf.get_image_file_type("/tmp/rbpdf_logo.gif")
+    assert_equal 'gif', type
+
+    type = pdf.get_image_file_type("/tmp/rbpdf_logo.PNG")
+    assert_equal 'png', type
+
+    type = pdf.get_image_file_type("/tmp/rbpdf_logo.jpg")
+    assert_equal 'jpeg', type
+
+    type = pdf.get_image_file_type("/tmp/rbpdf_logo.jpeg")
+    assert_equal 'jpeg', type
+
+    type = pdf.get_image_file_type("/tmp/rbpdf_logo")
+    assert_equal '', type
+
+    type = pdf.get_image_file_type("")
+    assert_equal '', type
+
+    type = pdf.get_image_file_type(nil)
+    assert_equal '', type
+  end
+
+  test "Image basic func mime type test" do
+    pdf = RBPDF.new
+
+    type = pdf.get_image_file_type(nil, {})
+    assert_equal '', type
+
+    type = pdf.get_image_file_type(nil, {'mime' => 'image/gif'})
+    assert_equal 'gif', type
+
+    type = pdf.get_image_file_type(nil, {'mime' => 'image/jpeg'})
+    assert_equal 'jpeg', type
+
+    type = pdf.get_image_file_type('/tmp/rbpdf_logo.gif', {'mime' => 'image/png'})
+    assert_equal 'png', type
+
+    type = pdf.get_image_file_type('/tmp/rbpdf_logo.gif', {})
+    assert_equal 'gif', type
+
+    type = pdf.get_image_file_type(nil, {'mime' => 'text/html'})
+    assert_equal '', type
+
+    type = pdf.get_image_file_type(nil, [])
+    assert_equal '', type
+  end
+
+  test "Image basic filename test" do
+    pdf = RBPDF.new
+    err = assert_raises(RuntimeError) { 
+      pdf.image(nil)
+    }
+    assert_equal 'RBPDF error: Image filename is empty.', err.message
+
+    err = assert_raises(RuntimeError) { 
+      pdf.image('')
+    }
+    assert_equal 'RBPDF error: Image filename is empty.', err.message
+
+    err = assert_raises(RuntimeError) { 
+      pdf.image('foo.png')
+    }
+    assert_equal 'RBPDF error: Missing image file: foo.png', err.message
+  end
+
+  test "Image basic test" do
+    pdf = RBPDF.new
+    pdf.add_page
+    img_file = File.join(File.dirname(__FILE__), '..', 'logo_example.png')
+
+    result_img = pdf.image(img_file, 50, 0, 0, '', '', '', '', false, 300, '', true)
+
+    no = pdf.get_num_pages
+    assert_equal 1, no
+  end
+
+  test "Image fitonpage test 1" do
+    pdf = RBPDF.new
+    pdf.add_page
+    img_file = File.join(File.dirname(__FILE__), '..', 'logo_example.png')
+
+    result_img = pdf.image(img_file, 50, 140, 100, '', '', '', '', false, 300, '', true, false, 0, false, false, true)
+
+    no = pdf.get_num_pages
+    assert_equal 1, no
+  end
+
+  test "Image fitonpage test 2" do
+    pdf = RBPDF.new
+    pdf.add_page
+    img_file = File.join(File.dirname(__FILE__), '..', 'logo_example.png')
+
+    y = 100
+    w = pdf.get_page_width * 2
+    h = pdf.get_page_height
+    result_img = pdf.image(img_file, '', y, w, h, '', '', '', false, 300, '', true, false, 0, false, false, true)
+
+    no = pdf.get_num_pages
+    assert_equal 1, no
+  end
+
+  test "Image get image file test" do
+    port = 51234
+#=begin
+    require 'webrick'
+
+#    dir = File.expand_path("test")
+    dir = File.dirname(__FILE__)
+    #port = 8000
+    s = WEBrick::HTTPServer.new(:Port => port, :DocumentRoot => dir, :BindAddress => "0.0.0.0")
+#    s = WEBrick::HTTPServer.new(:Port => port, :DocumentRoot => dir)
+    t = Thread.new { s.start }
+#    trap(:INT) do
+#      s.shutdown
+#      t.join
+#      exit
+#    end
+#=end
+
+#sleep 100
+    pdf = MYPDF.new
+    pdf.add_page
+    #uri = 'http://localhost:' + port.to_s + '/logo_rbpdf_8bit.png'
+#    tmpFile = pdf.get_image_file('http://localhost:' + port.to_s + '/logo_rbpdf_8bit.png')
+    tmpFile = pdf.get_image_file('http://127.0.0.1:' + port.to_s + '/logo_rbpdf_8bit.png')
+#puts uri
+#    tmpFile = pdf.get_image_file(uri)
+    img_file = tmpFile.path
+    assert_not_equal "", img_file
+    unless File.exists?(img_file)
+      assert false, "file not found. :" + img_file
+    end
+
+#sleep 100
+    result_img = pdf.image(img_file, 50, 0, 0, '', '', '', '', false, 300, '', true)
+    no = pdf.get_num_pages
+    assert_equal 1, no
+
+    # remove temp files
+    tmpFile.delete unless tmpFile.nil?
+
+    if File.exists?(img_file)
+      assert false, "file found. :" + img_file
+    end
+
+      s.shutdown
+      t.join
+  end
+end
